@@ -16,12 +16,13 @@
 #' 
 #' #load data :
 #' data(df_motif, package = "MotifAll")
-#' df <- df_motif[df_motif$Residue == "Y", ]
+#' site_residue="S"
+#' df <- df_motif[df_motif$Residue == site_residue, ]
 #' 
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
 #' 
-#' df_motif_score <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = "Y")
+#' res <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = site_residue)
 #' 
 MotifAll <- function(x, 
                      idx_select, 
@@ -70,6 +71,7 @@ get_motif_score <- function(x, idx_select, motif_list){
   
   n_motifs <- length(motif_list)
   motif <- rep("", n_motifs)
+  motif_length <- rep(NA, n_motifs)
   n_hits_sample <- rep(NA, n_motifs)
   n_hits_bckg <- rep(NA, n_motifs)
   freq_sample <- rep(NA, n_motifs)
@@ -83,6 +85,7 @@ get_motif_score <- function(x, idx_select, motif_list){
   for(i in 1:length(motif_list)){
     
     motif[i] <- print_motifs(motif_list[i], n)
+    motif_length[i] <- length(motif_list[[i]]$positions)
     idx_match_sample[[i]] <- idx_select[match_motif(df_select, motif_list[[i]])]
     idx_match_bckg[[i]] <- match_motif(df, motif_list[[i]])
     n_hits_sample[i] <- length( idx_match_sample[[i]] )
@@ -100,12 +103,15 @@ get_motif_score <- function(x, idx_select, motif_list){
   }
   
   df <- data.frame(motif = motif,
+                   length = motif_length,
                    p_value = p_value,
                    fold_change = fold_change,
                    n_hits_sample = n_hits_sample,
                    n_sample = rep(n_sample, n_motifs),
+                   freq_sample = freq_sample,
                    n_hits_bckg = n_hits_bckg,
-                   n_bckg  = rep(n_bckg, n_motifs)
+                   n_bckg  = rep(n_bckg, n_motifs),
+                   freq_bckg = freq_bckg
                    )
   
   res <- list(score=df, idx_match_bckg = idx_match_bckg, idx_match_sample = idx_match_sample)
