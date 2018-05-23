@@ -21,14 +21,22 @@
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
 #' 
-#' df_motif_score <- MotifAll(x, idx_select, support = 0.05, k_min = 3)
+#' df_motif_score <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = "Y")
 #' 
-MotifAll <- function(x, idx_select, support=0.05, k_min=3, k_max = NULL, center_residue="Y"){
+MotifAll <- function(x, 
+                     idx_select, 
+                     support=0.05, 
+                     k_min=3, 
+                     k_max = NULL, 
+                     central_letter = NULL){
   # x : set of sequences
   # idx_select : indexes of foreground sequences in x
   
   n_letters <- nchar(x[1])
-  motif_list <- find_frequent_motifs(x = x[idx_select], support = support, k_max = k_max)
+  motif_list <- find_frequent_motifs(x = x[idx_select], 
+                                     support = support, 
+                                     k_max = k_max, 
+                                     central_letter = central_letter)
   motif_list <- filter_motif_list(motif_list, k_min = k_min)
   motifs <- print_motifs(motif_list, n_letters)
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
@@ -118,7 +126,7 @@ filter_motif_list <- function(motif_list, k_min){
 }
                                  
 #' @export
-find_frequent_motifs <- function(x, support = 0.05, k_max = NULL) {
+find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter = NULL) {
   # implementation of the Motif_All algorithm to find all frequent motifs (with a support >= k) in a set of sequences x
   
   
@@ -145,23 +153,33 @@ find_frequent_motifs <- function(x, support = 0.05, k_max = NULL) {
   
   F_list <- list()
   
-  # list all 1-motif
-  count <- 0
-  cat("Listing 1-motif\n")
-  pb <- txtProgressBar(min = 0, max = n, style = 3)
-  
-  for (j in 1:n){
-    setTxtProgressBar(pb, j)
-    sum_df <- summary(df[[j]])
-    idx <- which( sum_df >= N_support )
-    if(length(idx)>0){
-      for (k in 1:length(idx)){
-        count <- count + 1
-        F_list[[count]] <- data.frame(positions = j, letters = names(idx[k]), stringsAsFactors = FALSE)
+  if(is.null(central_letter)){
+    
+    # list all 1-motif
+    count <- 0
+    cat("Listing 1-motif\n")
+    pb <- txtProgressBar(min = 0, max = n, style = 3)
+    
+    for (j in 1:n){
+      setTxtProgressBar(pb, j)
+      sum_df <- summary(df[[j]])
+      idx <- which( sum_df >= N_support )
+      if(length(idx)>0){
+        for (k in 1:length(idx)){
+          count <- count + 1
+          F_list[[count]] <- data.frame(positions = j, letters = names(idx[k]), stringsAsFactors = FALSE)
+        }
       }
     }
+    close(pb)
+  } else {
+    if( typeof(central_letter) == "character"){
+      F_list[[1]] <- data.frame(positions = round((n+1)/2), letters = central_letter, stringsAsFactors = FALSE)
+    }else{
+      stop("Wrong parameter type: 'central_letter' should a 'character'")
+    }
   }
-  close(pb)
+  
   
   F_list_new <- get_unique_motifs(F_list, n_letters = n)
   cat(paste("N=",length(F_list_new),"\n",sep=""))
