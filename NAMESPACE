@@ -3,6 +3,7 @@
 export(MotifAll)
 export(filter_motif_list)
 export(find_frequent_motifs)
+export(get_motif_score)
 export(get_unique_motifs)
 export(match_motif)
 export(print_motifs)

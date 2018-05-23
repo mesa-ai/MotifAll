@@ -16,11 +16,14 @@
 #' 
 #' #load data :
 #' data(df_motif, package = "MotifAll")
-#' idx_select <- which(!is.na(df_motif$Cluster) & df_motif$Residue == "Y")
-#' x <- as.character(df_motif$Sequence)
-#' motifs <- MotifAll(x, idx_select, support = 0.01, k_min = 4)
+#' df <- df_motif[df_motif$Residue == "Y", ]
 #' 
-MotifAll <- function(x, idx_select, support=0.05, k_min=4, k_max = NULL){
+#' x <- as.character(df$Sequence)
+#' idx_select <- which(!is.na(df$Cluster))
+#' 
+#' df_motif_score <- MotifAll(x, idx_select, support = 0.05, k_min = 3)
+#' 
+MotifAll <- function(x, idx_select, support=0.05, k_min=3, k_max = NULL, center_residue="Y"){
   # x : set of sequences
   # idx_select : indexes of foreground sequences in x
   
@@ -31,7 +34,75 @@ MotifAll <- function(x, idx_select, support=0.05, k_min=4, k_max = NULL){
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   #unique_motifs <- motifs[length_motifs >= k_min]
   
-  return(motifs)
+  res <- get_motif_score(x, idx_select, motif_list)
+  
+  return(res)
+  
+}
+
+#' @export
+get_motif_score <- function(x, idx_select, motif_list){
+  
+  n <- nchar(x[1])
+  n_seq<- length(x)
+  M <- matrix("", n_seq, n)
+  
+  for (i in 1:n_seq){
+    for (j in 1:n){
+      M[i, j] <- substr(x[i],j,j)
+    }
+  }
+  
+  df <- as.data.frame(M)
+  df_select <- df[idx_select, ]
+  
+  n_sample <- length(idx_select)
+  n_bckg <- n_seq
+  
+  
+  n_motifs <- length(motif_list)
+  motif <- rep("", n_motifs)
+  n_hits_sample <- rep(NA, n_motifs)
+  n_hits_bckg <- rep(NA, n_motifs)
+  freq_sample <- rep(NA, n_motifs)
+  freq_bckg <- rep(NA, n_motifs)
+  p_value <- rep(NA, n_motifs)
+  fold_change <- rep(NA, n_motifs)
+  
+  idx_match_sample <- list()
+  idx_match_bckg <- list()
+  
+  for(i in 1:length(motif_list)){
+    
+    motif[i] <- print_motifs(motif_list[i], n)
+    idx_match_sample[[i]] <- idx_select[match_motif(df_select, motif_list[[i]])]
+    idx_match_bckg[[i]] <- match_motif(df, motif_list[[i]])
+    n_hits_sample[i] <- length( idx_match_sample[[i]] )
+    n_hits_bckg[i] <- length( idx_match_bckg[[i]] )
+    freq_sample[i] <- n_hits_sample[i] / n_sample
+    freq_bckg[i] <- n_hits_bckg[i] / n_bckg
+    
+    p_value[i] = 1-phyper(n_hits_sample[i]-1, 
+                          n_hits_bckg[i],  
+                          n_bckg-n_hits_bckg[i],  
+                          n_sample);
+    
+    fold_change[i] = freq_sample[i]/freq_bckg[i];
+    
+  }
+  
+  df <- data.frame(motif = motif,
+                   p_value = p_value,
+                   fold_change = fold_change,
+                   n_hits_sample = n_hits_sample,
+                   n_sample = rep(n_sample, n_motifs),
+                   n_hits_bckg = n_hits_bckg,
+                   n_bckg  = rep(n_bckg, n_motifs)
+                   )
+  
+  res <- list(score=df, idx_match_bckg = idx_match_bckg, idx_match_sample = idx_match_sample)
+  
+  return(res)
   
 }
 
@@ -41,7 +112,7 @@ filter_motif_list <- function(motif_list, k_min){
   length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   idx_filter = which(length_motifs >= k_min)
   motif_list_filter <- motif_list[idx_filter]
-  
+
   return(motif_list_filter)
   
 }
