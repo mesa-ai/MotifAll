@@ -2,12 +2,18 @@
 #'
 #' This package implements the Motif_All algorithm
 #'
-#' @param x a vector of sequences
+#' @param x a vector of sequences (with a fixed length). Defined as the background set
+#' @param idx_select the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.
 #' @param support the minimum support of motifs
 #' @param k_min the minimum size of motifs
+#' @param k_max the maximum size of motifs (set to NULL to ignore)
+#' @param central_letter search only for motifs that have the given character in central position
 #'
-#' @return a vector of motifs
-#'
+#' @return a list with vector of motifs
+#'@return a list including the following elements :
+#' \code{score} : a dataframe with the mnotif identified along with scores and counts; 
+#' \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
+#' \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
 #' @export
 #'
 #' @author Guillaume Voisinne

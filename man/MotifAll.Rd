@@ -8,14 +8,25 @@ MotifAll(x, idx_select, support = 0.05, k_min = 3, k_max = NULL,
   central_letter = NULL)
 }
 \arguments{
-\item{x}{a vector of sequences}
+\item{x}{a vector of sequences (with a fixed length). Defined as the background set}
+
+\item{idx_select}{the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.}
 
 \item{support}{the minimum support of motifs}
 
 \item{k_min}{the minimum size of motifs}
+
+\item{k_max}{the maximum size of motifs (set to NULL to ignore)}
+
+\item{central_letter}{search only for motifs that have the given character in central position}
 }
 \value{
-a vector of motifs
+a list with vector of motifs
+
+a list including the following elements :
+\code{score} : a dataframe with the mnotif identified along with scores and counts; 
+\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
+\code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
 }
 \description{
 This package implements the Motif_All algorithm
@@ -25,12 +36,14 @@ This package implements the Motif_All algorithm
 #load data :
 data(df_motif, package = "MotifAll")
 site_residue="S"
-df <- df_motif[df_motif$Residue == site_residue, ]
+
+idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == site_residue)
+df <- df_motif[idx_residue, ]
 
 x <- as.character(df$Sequence)
 idx_select <- which(!is.na(df$Cluster))
 
-save file for a compaison with the java implementation of MotifAll
+#save file for a compaison with the java implementation of MotifAll
 write.table(x, "./comp/data_bg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
 write.table(x[idx_select], "./comp/data_fg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
