@@ -17,7 +17,9 @@
 #' #load data :
 #' data(df_motif, package = "MotifAll")
 #' site_residue="S"
-#' df <- df_motif[df_motif$Residue == site_residue, ]
+#' 
+#' idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == site_residue)
+#' df <- df_motif[idx_residue, ]
 #' 
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
