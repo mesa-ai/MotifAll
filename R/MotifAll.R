@@ -9,11 +9,12 @@
 #' @param k_max the maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
 #'
-#' @return a list with vector of motifs
-#'@return a list including the following elements :
-#' \code{score} : a dataframe with the mnotif identified along with scores and counts; 
-#' \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
-#' \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
+#' @return A list including the following elements :
+#
+#' @return \code{score} : a dataframe with the motif identified along with scores and counts; 
+#' @return \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x; 
+#' @return \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
+#' 
 #' @export
 #'
 #' @author Guillaume Voisinne
@@ -30,16 +31,13 @@
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
 #' 
-#' #save file for a compaison with the java implementation of MotifAll
-#' write.table(x, "./comp/data_bg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-#' write.table(x[idx_select], "./comp/data_fg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-#' 
-#' res <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = site_residue)
+#' res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = site_residue)
 #' 
 MotifAll <- function(x, 
                      idx_select, 
-                     support=0.05, 
-                     k_min=3, 
+                     support = 0.05,
+                     signif = 0.05,
+                     k_min = 3, 
                      k_max = NULL, 
                      central_letter = NULL){
   # x : set of sequences
@@ -56,6 +54,14 @@ MotifAll <- function(x,
   #unique_motifs <- motifs[length_motifs >= k_min]
   
   res <- get_motif_score(x, idx_select, motif_list)
+  idx_filter <- which(res$score$p_value_Z_score <= signif)
+  if(length(idx_filter)>0){
+    res$score <- res$score[idx_filter, ]
+    res$idx_match_bckg <- res$idx_match_bckg[idx_filter]
+    res$idx_match_sample <- res$idx_match_sample[idx_filter]
+  } else {
+    stop("No motif found. Try changing parameters.")
+  }
   
   return(res)
   

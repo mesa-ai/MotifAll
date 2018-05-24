@@ -4,8 +4,8 @@
 \alias{MotifAll}
 \title{Analysis of motifs in protein sequences}
 \usage{
-MotifAll(x, idx_select, support = 0.05, k_min = 3, k_max = NULL,
-  central_letter = NULL)
+MotifAll(x, idx_select, support = 0.05, signif = 0.05, k_min = 3,
+  k_max = NULL, central_letter = NULL)
 }
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
@@ -21,11 +21,12 @@ MotifAll(x, idx_select, support = 0.05, k_min = 3, k_max = NULL,
 \item{central_letter}{search only for motifs that have the given character in central position}
 }
 \value{
-a list with vector of motifs
+A list including the following elements :
 
-a list including the following elements :
-\code{score} : a dataframe with the mnotif identified along with scores and counts; 
-\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
+\code{score} : a dataframe with the motif identified along with scores and counts;
+
+\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x;
+
 \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
 }
 \description{
@@ -43,11 +44,7 @@ df <- df_motif[idx_residue, ]
 x <- as.character(df$Sequence)
 idx_select <- which(!is.na(df$Cluster))
 
-#save file for a compaison with the java implementation of MotifAll
-write.table(x, "./comp/data_bg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-write.table(x[idx_select], "./comp/data_fg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
-
-res <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = site_residue)
+res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = site_residue)
 
 }
 \author{
