@@ -5,7 +5,7 @@
 \title{Analysis of motifs in protein sequences}
 \usage{
 MotifAll(x, idx_select, support = 0.05, k_min = 3, k_max = NULL,
-  center_residue = "Y")
+  central_letter = NULL)
 }
 \arguments{
 \item{x}{a vector of sequences}
@@ -24,12 +24,17 @@ This package implements the Motif_All algorithm
 
 #load data :
 data(df_motif, package = "MotifAll")
-df <- df_motif[df_motif$Residue == "Y", ]
+site_residue="S"
+df <- df_motif[df_motif$Residue == site_residue, ]
 
 x <- as.character(df$Sequence)
 idx_select <- which(!is.na(df$Cluster))
 
-df_motif_score <- MotifAll(x, idx_select, support = 0.05, k_min = 3)
+save file for a compaison with the java implementation of MotifAll
+write.table(x, "./comp/data_bg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+write.table(x[idx_select], "./comp/data_fg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+res <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = site_residue)
 
 }
 \author{

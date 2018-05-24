@@ -22,6 +22,10 @@
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
 #' 
+#' #save file for a compaison with the java implementation of MotifAll
+#' write.table(x, "./comp/data_bg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+#' write.table(x[idx_select], "./comp/data_fg.txt", row.names = FALSE, col.names = FALSE, quote = FALSE)
+#' 
 #' res <- MotifAll(x, idx_select, support = 0.05, k_min = 3, central_letter = site_residue)
 #' 
 MotifAll <- function(x, 
@@ -76,8 +80,10 @@ get_motif_score <- function(x, idx_select, motif_list){
   n_hits_bckg <- rep(NA, n_motifs)
   freq_sample <- rep(NA, n_motifs)
   freq_bckg <- rep(NA, n_motifs)
-  p_value <- rep(NA, n_motifs)
+  p_value_hyper <- rep(NA, n_motifs)
   fold_change <- rep(NA, n_motifs)
+  Z_score<-  rep(NA, n_motifs)
+  p_value_Z_score<- rep(NA, n_motifs)
   
   idx_match_sample <- list()
   idx_match_bckg <- list()
@@ -88,24 +94,37 @@ get_motif_score <- function(x, idx_select, motif_list){
     motif_length[i] <- length(motif_list[[i]]$positions)
     idx_match_sample[[i]] <- idx_select[match_motif(df_select, motif_list[[i]])]
     idx_match_bckg[[i]] <- match_motif(df, motif_list[[i]])
+    
+     
     n_hits_sample[i] <- length( idx_match_sample[[i]] )
     n_hits_bckg[i] <- length( idx_match_bckg[[i]] )
     freq_sample[i] <- n_hits_sample[i] / n_sample
     freq_bckg[i] <- n_hits_bckg[i] / n_bckg
     
-    p_value[i] = 1-phyper(n_hits_sample[i]-1, 
+    c00 <- n_hits_sample[i]
+    c01 <- n_sample - c00
+    c10 <- n_hits_bckg[i]
+    c11 <- n_bckg - c10
+    
+    LOR <- log(c00*c11/(c10*c01))
+    SE <- sqrt(1/c00 + 1/c01 + 1/c10 + 1/c11)
+    Z_score[i] <-  LOR/SE
+    p_value_Z_score[i] <- 1-pnorm(Z_score[i])
+    p_value_hyper[i] <- 1-phyper(n_hits_sample[i]-1, 
                           n_hits_bckg[i],  
                           n_bckg-n_hits_bckg[i],  
                           n_sample);
     
-    fold_change[i] = freq_sample[i]/freq_bckg[i];
+    fold_change[i] <- freq_sample[i]/freq_bckg[i];
     
   }
   
   df <- data.frame(motif = motif,
                    length = motif_length,
-                   p_value = p_value,
+                   Z_score = Z_score,
+                   p_value_Z_score = p_value_Z_score,
                    fold_change = fold_change,
+                   p_value_hyper = p_value_hyper,
                    n_hits_sample = n_hits_sample,
                    n_sample = rep(n_sample, n_motifs),
                    freq_sample = freq_sample,
