@@ -11,8 +11,8 @@
 #'
 #' @return A list including the following elements :
 #
-#' @return \code{score} : a dataframe with the motif identified along with scores and counts; 
-#' @return \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x; 
+#' @return \code{score} : a dataframe with the motif identified along with scores and counts
+#' @return \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
 #' @return \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
 #' 
 #' @export

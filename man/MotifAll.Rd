@@ -23,9 +23,9 @@ MotifAll(x, idx_select, support = 0.05, signif = 0.05, k_min = 3,
 \value{
 A list including the following elements :
 
-\code{score} : a dataframe with the motif identified along with scores and counts;
+\code{score} : a dataframe with the motif identified along with scores and counts
 
-\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x;
+\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
 
 \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
 }
