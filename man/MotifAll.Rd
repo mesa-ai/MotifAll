@@ -4,15 +4,17 @@
 \alias{MotifAll}
 \title{Analysis of motifs in protein sequences}
 \usage{
-MotifAll(x, idx_select, support = 0.05, signif = 0.05, k_min = 3,
-  k_max = NULL, central_letter = NULL)
+MotifAll(x, idx_select, N_support = NULL, support = 0.05, signif = 0.05,
+  k_min = 3, k_max = NULL, central_letter = NULL)
 }
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
 
 \item{idx_select}{the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.}
 
-\item{support}{the minimum support of motifs}
+\item{N_support}{the minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}}
+
+\item{support}{the minimum support of motifs in the foreground set (frequence)}
 
 \item{k_min}{the minimum size of motifs}
 
@@ -23,11 +25,11 @@ MotifAll(x, idx_select, support = 0.05, signif = 0.05, k_min = 3,
 \value{
 A list including the following elements :
 
-\code{score} : a dataframe with the motif identified along with scores and counts
+\code{score} : a dataframe with the motifs identified along with scores and counts
 
 \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
 
-\code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
+\code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
 }
 \description{
 This package implements the Motif_All algorithm

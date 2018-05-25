@@ -4,16 +4,17 @@
 #'
 #' @param x a vector of sequences (with a fixed length). Defined as the background set
 #' @param idx_select the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.
-#' @param support the minimum support of motifs
+#' @param N_support the minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}
+#' @param support the minimum support of motifs in the foreground set (frequence)
 #' @param k_min the minimum size of motifs
 #' @param k_max the maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
 #'
 #' @return A list including the following elements :
 #
-#' @return \code{score} : a dataframe with the motif identified along with scores and counts
+#' @return \code{score} : a dataframe with the motifs identified along with scores and counts
 #' @return \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
-#' @return \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x for sequences also part of the foreground set
+#' @return \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
 #' 
 #' @export
 #'
@@ -34,7 +35,8 @@
 #' res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = site_residue)
 #' 
 MotifAll <- function(x, 
-                     idx_select, 
+                     idx_select,
+                     N_support = NULL,
                      support = 0.05,
                      signif = 0.05,
                      k_min = 3, 
@@ -45,6 +47,7 @@ MotifAll <- function(x,
   
   n_letters <- nchar(x[1])
   motif_list <- find_frequent_motifs(x = x[idx_select], 
+                                     N_support = N_support,
                                      support = support, 
                                      k_max = k_max, 
                                      central_letter = central_letter)
@@ -59,8 +62,10 @@ MotifAll <- function(x,
     res$score <- res$score[idx_filter, ]
     res$idx_match_bckg <- res$idx_match_bckg[idx_filter]
     res$idx_match_sample <- res$idx_match_sample[idx_filter]
+    res$motif_list <- motif_list[idx_filter]
   } else {
-    stop("No motif found. Try changing parameters.")
+    warning("No motif found. Try changing parameters.")
+    return(NULL)
   }
   
   return(res)
@@ -69,6 +74,11 @@ MotifAll <- function(x,
 
 #' @export
 get_motif_score <- function(x, idx_select, motif_list){
+  
+  if (length(motif_list)==0){
+    warning("No motif found. Try changing parameters.")
+    return(NULL)
+  }
   
   n <- nchar(x[1])
   n_seq<- length(x)
@@ -102,12 +112,16 @@ get_motif_score <- function(x, idx_select, motif_list){
   idx_match_sample <- list()
   idx_match_bckg <- list()
   
+  cat("Computing motif scores\n")
+  pb <- txtProgressBar(min = 0, max = length(motif_list), style = 3)
+  
   for(i in 1:length(motif_list)){
     
+    setTxtProgressBar(pb, i)
     motif[i] <- print_motifs(motif_list[i], n)
     motif_length[i] <- length(motif_list[[i]]$positions)
-    idx_match_sample[[i]] <- idx_select[match_motif(df_select, motif_list[[i]])]
-    idx_match_bckg[[i]] <- match_motif(df, motif_list[[i]])
+    idx_match_sample[[i]] <- idx_select[match_motif_df(df_select, motif_list[[i]])]
+    idx_match_bckg[[i]] <- match_motif_df(df, motif_list[[i]])
     
      
     n_hits_sample[i] <- length( idx_match_sample[[i]] )
@@ -132,6 +146,7 @@ get_motif_score <- function(x, idx_select, motif_list){
     fold_change[i] <- freq_sample[i]/freq_bckg[i];
     
   }
+  close(pb)
   
   df <- data.frame(motif = motif,
                    length = motif_length,
@@ -165,7 +180,7 @@ filter_motif_list <- function(motif_list, k_min){
 }
                                  
 #' @export
-find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter = NULL) {
+find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NULL, central_letter = NULL) {
   # implementation of the Motif_All algorithm to find all frequent motifs (with a support >= k) in a set of sequences x
   
   
@@ -178,7 +193,13 @@ find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter
   }
     
   n_seq <- length(x)
-  N_support <- n_seq*support
+  
+  if (is.null(N_support)){
+    N_support_eff <- n_seq*support
+  } else {
+    N_support_eff <- N_support
+  }
+  
   
   M <- matrix("", n_seq, n)
   for (i in 1:n_seq){
@@ -202,7 +223,7 @@ find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter
     for (j in 1:n){
       setTxtProgressBar(pb, j)
       sum_df <- summary(df[[j]])
-      idx <- which( sum_df >= N_support )
+      idx <- which( sum_df >= N_support_eff )
       if(length(idx)>0){
         for (k in 1:length(idx)){
           count <- count + 1
@@ -235,11 +256,11 @@ find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter
     
     for (i in 1:length(F_list_new)){
       setTxtProgressBar(pb, i)
-      idx_match <- match_motif(df, F_list_new[[i]])
+      idx_match <- match_motif_df(df, F_list_new[[i]])
       
       for (j in setdiff(1:n, F_list_new[[i]]$positions)){
         sum_df <- summary( df[idx_match, j])
-        idx <- which( sum_df >= N_support )
+        idx <- which( sum_df >= N_support_eff )
         if(length(idx)>0){
           for (k in 1:length(idx)){
             count <- count + 1
@@ -270,7 +291,54 @@ find_frequent_motifs <- function(x, support = 0.05, k_max = NULL, central_letter
 }
 
 #' @export
-match_motif <- function(df, motif){
+match_sequence_to_motifs <- function(motif_list, x){
+  
+  n <- nchar(x)
+  n_seq <- 1
+  
+  M <- matrix("", n_seq, n)
+  for (i in 1:n_seq){
+    for (j in 1:n){
+      M[i, j] <- substr(x[i],j,j)
+    }
+  }
+  
+  df<-as.data.frame(M)
+  
+  idx<-NULL
+  for (i in 1:length(motif_list)){
+    if (length(match_motif_df(df, motif_list[[i]])) > 0 ){
+      idx <- c(idx, i)
+    }
+  }
+  
+  return(idx)
+  
+}
+
+#' @export
+match_motif_to_sequences <- function(x, motif){
+  
+  n <- nchar(x[1])
+  n_seq <- length(x)
+
+  M <- matrix("", n_seq, n)
+  for (i in 1:n_seq){
+    for (j in 1:n){
+      M[i, j] <- substr(x[i],j,j)
+    }
+  }
+  
+  df<-as.data.frame(M)
+  
+  idx<-match_motif_df(df, motif)
+  
+  return(idx)
+  
+}
+
+#' @export
+match_motif_df <- function(df, motif){
   # get the indexes that match a given motif  
   df_int <- NULL
   for(i in 1:length(motif$positions)){
