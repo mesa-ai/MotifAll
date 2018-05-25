@@ -6,13 +6,9 @@ Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
 Description: This package implements the Motif-All algorithm to list all motifs in a set of sequences.
 Imports:
-	dplyr, 
-	ggplot2, 
-	ggrepel,
-	stringr,
-  Rcpp
+	stats,
+	utils
 License: GPL-2
 RoxygenNote: 6.0.1
 Depends: R (>= 2.10)
 Suggests: testthat
-LinkingTo: Rcpp
