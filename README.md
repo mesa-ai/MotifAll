@@ -1,4 +1,7 @@
+[![Travis-CI Build Status](https://travis-ci.org/VoisinneG/MotifAll.svg?branch=master)](https://travis-ci.org/VoisinneG/MotifAll) 
+
 # MotifAll
+
 A R package for motif discovery in biological sequences.
 This package implements the Motif-All algorithm described in [He et al. BMC Bioinformatics 2011, 12(Suppl 1):S22](http://www.biomedcentral.com/1471-2105/12/S1/S22)
 
