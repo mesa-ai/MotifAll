@@ -3,18 +3,22 @@
 #' This package implements the Motif_All algorithm
 #'
 #' @param x a vector of sequences (with a fixed length). Defined as the background set
-#' @param idx_select the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.
-#' @param N_support the minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}
-#' @param support the minimum support of motifs in the foreground set (frequence)
-#' @param k_min the minimum size of motifs
-#' @param k_max the maximum size of motifs (set to NULL to ignore)
+#' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
+#' @param N_support minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}
+#' @param support minimum support of motifs in the foreground set (frequence)
+#' @param signif significance level of output motifs (p-value associated with the Z-score)
+#' @param k_min minimum size of motifs
+#' @param k_max maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
 #'
 #' @return A list including the following elements :
 #
-#' @return \code{score} : a dataframe with the motifs identified along with scores and counts
-#' @return \code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
-#' @return \code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
+#' @return \code{score} : data frame with the motifs identified along with scores and counts
+#' @return \code{idx_match_bckg} : list of vectors containing the matching indexes of a given motif in the set of sequences x
+#' @return \code{idx_match_sample} : list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
+#' 
+#' @import stats
+#' @import utils
 #' 
 #' @export
 #'
@@ -23,16 +27,19 @@
 #' @examples
 #' 
 #' #load data :
-#' data(df_motif, package = "MotifAll")
-#' site_residue="S"
+#' dir<- system.file("extdata", package = "MotifAll")
+#' path <- paste(dir,"/phospho_site_annotated_plus_motifs.txt",sep="")
+#' df_motif <- read.csv(path, sep="\t", quote = "\"")
+#' #data(df_motif, package = "MotifAll")
+#' psite <- "S"
 #' 
-#' idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == site_residue)
+#' idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == psite)
 #' df <- df_motif[idx_residue, ]
 #' 
 #' x <- as.character(df$Sequence)
 #' idx_select <- which(!is.na(df$Cluster))
 #' 
-#' res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = site_residue)
+#' res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = psite)
 #' 
 MotifAll <- function(x, 
                      idx_select,
@@ -72,6 +79,15 @@ MotifAll <- function(x,
   
 }
 
+
+#' Compute the enrichment score for a list of motifs in the foreground set as compared to the background set
+#'
+#' @param x a vector of sequences (with a fixed length). Defined as the background set
+#' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
+#' @param motif_list list of motifs
+#'
+#' @return A data frame summarizing motif enrichment analysis in foreground set
+#
 #' @export
 get_motif_score <- function(x, idx_select, motif_list){
   
@@ -168,6 +184,13 @@ get_motif_score <- function(x, idx_select, motif_list){
   
 }
 
+#' Filter motifs based on their length
+#'
+#' @param motif_list list of motifs
+#' @param k_min minimum motif length
+#'
+#' @return A list of motifs
+#
 #' @export
 filter_motif_list <- function(motif_list, k_min){
 
@@ -178,11 +201,20 @@ filter_motif_list <- function(motif_list, k_min){
   return(motif_list_filter)
   
 }
-                                 
+
+#' Find frequent motifs in a set of sequences using the Motif_All algorithm
+#'
+#' @param x a vector of sequences (with a fixed length). Defined as the background set
+#' @param N_support minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}
+#' @param support minimum support of motifs in the foreground set (frequence)
+#' @param k_max maximum size of motifs (set to NULL to ignore)
+#' @param central_letter search only for motifs that have the given character in central position
+#'
+#' @return a list of motifs
+#' 
 #' @export
 find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NULL, central_letter = NULL) {
   # implementation of the Motif_All algorithm to find all frequent motifs (with a support >= k) in a set of sequences x
-  
   
   n <- nchar(x[1])
   
@@ -290,6 +322,13 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
   return(F_list)
 }
 
+#' Match a sequence to a list of motifs
+#' 
+#' @param motif_list list of motifs
+#' @param x a sequence
+#' 
+#' @return vector of matching indexes
+#' 
 #' @export
 match_sequence_to_motifs <- function(motif_list, x){
   
@@ -316,6 +355,13 @@ match_sequence_to_motifs <- function(motif_list, x){
   
 }
 
+#' Match a motif to a set of sequences
+#' 
+#' @param motif a motif
+#' @param x a vector of sequences (with a fixed length).
+#' 
+#' @return vector of matching indexes
+#' 
 #' @export
 match_motif_to_sequences <- function(x, motif){
   
@@ -337,6 +383,13 @@ match_motif_to_sequences <- function(x, motif){
   
 }
 
+#' Match a motif to a set of sequences represented as a data frame
+#' 
+#' @param motif a motif
+#' @param df a data frame corresponding to a set of sequences (with a fixed length).
+#' 
+#' @return vector of matching indexes
+#' 
 #' @export
 match_motif_df <- function(df, motif){
   # get the indexes that match a given motif  
@@ -349,6 +402,13 @@ match_motif_df <- function(df, motif){
   
 }
 
+#' Print a motif as a character string
+#' 
+#' @param motif a motif
+#' @param n_letters length of the output character string
+#' 
+#' @return a character string
+#' 
 #' @export
 print_single_motif <- function(motif, n_letters){
   # write a motif as a string
@@ -361,12 +421,26 @@ print_single_motif <- function(motif, n_letters){
   return(paste(s, collapse=""))
 }
 
+#' Print a list motif as a vector of characters
+#' 
+#' @param motif_list a list of motifs
+#' @param n_letters length of the output character string
+#' 
+#' @return a vector of characters
+#' 
 #' @export
 print_motifs <- function(motif_list, n_letters){
   motifs <- unlist( lapply(motif_list, FUN = function(x){ print_single_motif(x, n_letters = n_letters) } ) )
   return(motifs)
 }
 
+#' Get unique motifs from a list of motifs
+#' 
+#' @param motif_list a list of motifs
+#' @param n_letters maximum number of letters in a motif
+#' 
+#' @return a list of motifs
+#' 
 #' @export
 get_unique_motifs <- function(motif_list, n_letters){
 

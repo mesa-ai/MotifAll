@@ -1,10 +1,10 @@
 Package: MotifAll
 Title: Analysis of motifs in protein sequences
-Version: 1.0
+Version: 0.1
 Date: 2018-05-23
 Author: Guillaume Voisinne
 Maintainer: Guillaume Voisinne <voisinne@ciml.univ-mrs.fr>
-Description: This package implements the Motif_All algorithm to list all motifs in a set of sequences
+Description: This package implements the Motif-All algorithm to list all motifs in a set of sequences.
 Imports:
 	dplyr, 
 	ggplot2, 
@@ -13,5 +13,6 @@ Imports:
   Rcpp
 License: GPL-2
 RoxygenNote: 6.0.1
+Depends: R (>= 2.10)
 Suggests: testthat
 LinkingTo: Rcpp

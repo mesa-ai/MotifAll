@@ -10,44 +10,31 @@ MotifAll(x, idx_select, N_support = NULL, support = 0.05, signif = 0.05,
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
 
-\item{idx_select}{the indexes of the foreground set. Note that here the foreground set must be a subset of the background set.}
+\item{idx_select}{Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.}
 
-\item{N_support}{the minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}}
+\item{N_support}{minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}}
 
-\item{support}{the minimum support of motifs in the foreground set (frequence)}
+\item{support}{minimum support of motifs in the foreground set (frequence)}
 
-\item{k_min}{the minimum size of motifs}
+\item{signif}{significance level of output motifs (p-value associated with the Z-score)}
 
-\item{k_max}{the maximum size of motifs (set to NULL to ignore)}
+\item{k_min}{minimum size of motifs}
+
+\item{k_max}{maximum size of motifs (set to NULL to ignore)}
 
 \item{central_letter}{search only for motifs that have the given character in central position}
 }
 \value{
 A list including the following elements :
 
-\code{score} : a dataframe with the motifs identified along with scores and counts
+\code{score} : data frame with the motifs identified along with scores and counts
 
-\code{idx_match_bckg} : a list of vectors containing the matching indexes of a given motif in the set of sequences x
+\code{idx_match_bckg} : list of vectors containing the matching indexes of a given motif in the set of sequences x
 
-\code{idx_match_sample} : a list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
+\code{idx_match_sample} : list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
 }
 \description{
 This package implements the Motif_All algorithm
-}
-\examples{
-
-#load data :
-data(df_motif, package = "MotifAll")
-site_residue="S"
-
-idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == site_residue)
-df <- df_motif[idx_residue, ]
-
-x <- as.character(df$Sequence)
-idx_select <- which(!is.na(df$Cluster))
-
-res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = site_residue)
-
 }
 \author{
 Guillaume Voisinne
