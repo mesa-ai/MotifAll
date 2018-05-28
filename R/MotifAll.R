@@ -80,13 +80,94 @@ MotifAll <- function(x,
   
 }
 
+#' Converts a set of sequences to a dataframe
+#'
+#' @param x a vector of sequences (with a fixed length)
+#' 
+#' @return a data frame with letter positions as columns and sequences as rows
+#' @export
+sequence_to_df <- function(x){
+  
+  n <- nchar(x[1])
+  n_seq<- length(x)
+  
+  M <- matrix("", n_seq, n)
+  
+  for (i in 1:n_seq){
+    for (j in 1:n){
+      M[i, j] <- substr(x[i],j,j)
+    }
+  }
+  df <- as.data.frame(M)
+  
+  return(df)
+}
 
 #' Compute the enrichment score for a list of motifs in the foreground set as compared to the background set
 #'
 #' @param x a vector of sequences (with a fixed length). Defined as the background set
 #' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
-#' @param motif_list list of motifs
+#' @param motif list of motifs
+#' @param central_letter keep only sequences that have the given character in central position
+#' 
+#' @return A data frame summarizing motif enrichment analysis in foreground set
+#
+#' @export
+score_motif_enrichment <- function(x, idx_select, motif, central_letter = NULL){
+  
+  
+  is_select <- rep(FALSE, length(x))
+  is_select[idx_select] <- TRUE
+  
+  xint <- x
+  is_center <- rep(TRUE, length(x))
+  if(!is.null(central_letter)){
+    ncenter <- round( 0.5 * (nchar(x[1]) + 1))
+    is_center <- substr(x, ncenter, ncenter) == central_letter
+  }
+  xint <- xint[is_center]
+  is_select_int <- is_center & is_select
+  
+  df <- sequence_to_df(x)
+  df_int <- sequence_to_df(xint)
+  df_select_int <- df[is_select_int, ]
+  
+  n_sample <- length(idx_select_int)
+  n_bckg <- length(x_int)
+  
+  idx_match_sample <-  idx_select[match_motif_df(df_select, motif)] 
+  idx_match_bckg <- idx_select_int[ match_motif_df(df, motif) ]
+  
+  n_hits_sample<- length(match_motif_df(df_select, motif))
+  n_hits_bckg <- length(match_motif_df(df, motif_list))
+  freq_sample <- n_hits_sample / n_sample
+  freq_bckg <- n_hits_bckg / n_bckg
+  
+  c00 <- n_hits_sample
+  c01 <- n_sample - c00
+  c10 <- n_hits_bckg
+  c11 <- n_bckg - c10
+  
+  LOR <- log(c00*c11/(c10*c01))
+  SE <- sqrt(1/c00 + 1/c01 + 1/c10 + 1/c11)
+  Z_score <-  LOR/SE
+  p_value_Z_score <- 1-pnorm(Z_score)
+  p_value_hyper <- 1-phyper(n_hits_sample-1, 
+                               n_hits_bckg,  
+                               n_bckg-n_hits_bckg,  
+                               n_sample);
+  
+  fold_change <- freq_sample/freq_bckg;
+  
+  
+}
+  
+#' Compute the enrichment score for a list of motifs in the foreground set as compared to the background set
 #'
+#' @param x a vector of sequences (with a fixed length). Defined as the background set
+#' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
+#' @param motif_list list of motifs
+#' 
 #' @return A data frame summarizing motif enrichment analysis in foreground set
 #
 #' @export
@@ -97,22 +178,11 @@ get_motif_score <- function(x, idx_select, motif_list){
     return(NULL)
   }
   
-  n <- nchar(x[1])
-  n_seq<- length(x)
-  M <- matrix("", n_seq, n)
-  
-  for (i in 1:n_seq){
-    for (j in 1:n){
-      M[i, j] <- substr(x[i],j,j)
-    }
-  }
-  
-  df <- as.data.frame(M)
+  df <- sequence_to_df(x)
   df_select <- df[idx_select, ]
   
   n_sample <- length(idx_select)
-  n_bckg <- n_seq
-  
+  n_bckg <- length(x)
   
   n_motifs <- length(motif_list)
   motif <- rep("", n_motifs)
@@ -135,12 +205,12 @@ get_motif_score <- function(x, idx_select, motif_list){
   for(i in 1:length(motif_list)){
     
     setTxtProgressBar(pb, i)
-    motif[i] <- print_motifs(motif_list[i])
+    motif[i] <- print(motif_list[[i]])
     motif_length[i] <- length(motif_list[[i]]$positions)
-    idx_match_sample[[i]] <- idx_select[match_motif_df(df_select, motif_list[[i]])]
-    idx_match_bckg[[i]] <- match_motif_df(df, motif_list[[i]])
     
-     
+    idx_match_sample[[i]] <- idx_select[match_motif_df(df_select, motif_list[[i]])] 
+    idx_match_bckg[[i]] <-  match_motif_df(df, motif_list[[i]]) 
+    
     n_hits_sample[i] <- length( idx_match_sample[[i]] )
     n_hits_bckg[i] <- length( idx_match_bckg[[i]] )
     freq_sample[i] <- n_hits_sample[i] / n_sample
@@ -156,9 +226,9 @@ get_motif_score <- function(x, idx_select, motif_list){
     Z_score[i] <-  LOR/SE
     p_value_Z_score[i] <- 1-pnorm(Z_score[i])
     p_value_hyper[i] <- 1-phyper(n_hits_sample[i]-1, 
-                          n_hits_bckg[i],  
-                          n_bckg-n_hits_bckg[i],  
-                          n_sample);
+                                 n_hits_bckg[i],  
+                                 n_bckg-n_hits_bckg[i],  
+                                 n_sample);
     
     fold_change[i] <- freq_sample[i]/freq_bckg[i];
     
@@ -177,13 +247,14 @@ get_motif_score <- function(x, idx_select, motif_list){
                    n_hits_bckg = n_hits_bckg,
                    n_bckg  = rep(n_bckg, n_motifs),
                    freq_bckg = freq_bckg
-                   )
+  )
   
   res <- list(score=df, idx_match_bckg = idx_match_bckg, idx_match_sample = idx_match_sample)
   
   return(res)
   
 }
+
 
 #' Filter motifs based on their length
 #'
@@ -405,19 +476,13 @@ match_motif_df <- function(df, motif){
   
 }
 
-#' Print a motif as a character string
-#' 
-#' @param motif a motif
-#' @param null_char the character for unspecified letters
-#' @return a character string
-#' 
-#' @export
-print_single_motif <- function(motif, null_char = "."){
+
+print.motif<- function(x, ... ){
   # write a motif as a string
   
-  s<-rep(null_char, motif$size)
-  for ( i in 1:length(motif$positions)){
-    s[motif$positions[i]] <- motif$letters[i]
+  s<-rep(".", x$size)
+  for ( i in 1:length(x$positions)){
+    s[x$positions[i]] <- x$letters[i]
   }
   
   return(paste(s, collapse=""))
@@ -431,7 +496,7 @@ print_single_motif <- function(motif, null_char = "."){
 #' 
 #' @export
 print_motifs <- function(motif_list){
-  motifs <- unlist( lapply(motif_list, FUN = function(x){ print_single_motif(x) } ) )
+  motifs <- unlist( lapply(motif_list, FUN = function(x){ print(x) } ) )
   return(motifs)
 }
 
