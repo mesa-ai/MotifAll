@@ -3,8 +3,10 @@
 #' This package implements the Motif_All algorithm
 #'
 #' @param x a vector of sequences (with a fixed length). Defined as the background set
-#' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
-#' @param N_support minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}
+#' @param idx_select Indexes of foreground sequences in \code{x}. Note that the 
+#' foreground set must be a subset of the background set.
+#' @param N_support minimum support of motifs in the foreground set (number of counts). 
+#' Has priority over \code{support}
 #' @param support minimum support of motifs in the foreground set (frequence)
 #' @param signif significance level of output motifs (p-value associated with the Z-score)
 #' @param k_min minimum size of motifs
@@ -25,11 +27,10 @@
 #' @author Guillaume Voisinne
 #'
 #' @examples
-#' 
 #' #load data :
 #' dir<- system.file("extdata", package = "MotifAll")
-#' path <- paste(dir,"/phospho_site_annotated_plus_motifs.txt",sep="")
-#' df_motif <- read.csv(path, sep="\t", quote = "\"")
+#' path <- paste(dir, "/phospho_site_annotated_plus_motifs.txt", sep="")
+#' df_motif <- read.csv(path, sep="\t")
 #' #data(df_motif, package = "MotifAll")
 #' psite <- "S"
 #' 
@@ -59,7 +60,7 @@ MotifAll <- function(x,
                                      k_max = k_max, 
                                      central_letter = central_letter)
   motif_list <- filter_motif_list(motif_list, k_min = k_min)
-  motifs <- print_motifs(motif_list, n_letters)
+  motifs <- print_motifs(motif_list)
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   #unique_motifs <- motifs[length_motifs >= k_min]
   
@@ -134,7 +135,7 @@ get_motif_score <- function(x, idx_select, motif_list){
   for(i in 1:length(motif_list)){
     
     setTxtProgressBar(pb, i)
-    motif[i] <- print_motifs(motif_list[i], n)
+    motif[i] <- print_motifs(motif_list[i])
     motif_length[i] <- length(motif_list[[i]]$positions)
     idx_match_sample[[i]] <- idx_select[match_motif_df(df_select, motif_list[[i]])]
     idx_match_bckg[[i]] <- match_motif_df(df, motif_list[[i]])
@@ -259,21 +260,21 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
       if(length(idx)>0){
         for (k in 1:length(idx)){
           count <- count + 1
-          F_list[[count]] <- data.frame(positions = j, letters = names(idx[k]), stringsAsFactors = FALSE)
+          F_list[[count]] <- motif(positions = j, letters = names(idx[k]), size = n)
         }
       }
     }
     close(pb)
   } else {
     if( typeof(central_letter) == "character"){
-      F_list[[1]] <- data.frame(positions = round((n+1)/2), letters = central_letter, stringsAsFactors = FALSE)
+      F_list[[1]] <- motif(positions = round((n+1)/2), letters = central_letter, size = n)
     }else{
       stop("Wrong parameter type: 'central_letter' should a 'character'")
     }
   }
   
   
-  F_list_new <- get_unique_motifs(F_list, n_letters = n)
+  F_list_new <- get_unique_motifs(F_list)
   cat(paste("N=",length(F_list_new),"\n",sep=""))
   #F_list_new <- F_list
   
@@ -296,8 +297,10 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
         if(length(idx)>0){
           for (k in 1:length(idx)){
             count <- count + 1
-            F_list_1[[count]] <- rbind(F_list_new[[i]], 
-                                       data.frame(positions = j, letters = names(sum_df)[idx[k]], stringsAsFactors = FALSE))
+            F_list_1[[count]] <- motif( positions = c(F_list_new[[i]]$positions, j),
+                                        letters = c(F_list_new[[i]]$letters, names(sum_df)[idx[k]]),
+                                        size = n )
+                                      
           }
         }
         
@@ -309,7 +312,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
     close(pb)
     
     if(length(F_list_1)>0){
-      F_list_new <- get_unique_motifs(F_list_1, n_letters = n)
+      F_list_new <- get_unique_motifs(F_list_1)
     } else {
       F_list_new <- list()
     }
@@ -405,15 +408,14 @@ match_motif_df <- function(df, motif){
 #' Print a motif as a character string
 #' 
 #' @param motif a motif
-#' @param n_letters length of the output character string
-#' 
+#' @param null_char the character for unspecified letters
 #' @return a character string
 #' 
 #' @export
-print_single_motif <- function(motif, n_letters){
+print_single_motif <- function(motif, null_char = "."){
   # write a motif as a string
   
-  s<-rep(".", n_letters)
+  s<-rep(null_char, motif$size)
   for ( i in 1:length(motif$positions)){
     s[motif$positions[i]] <- motif$letters[i]
   }
@@ -424,27 +426,25 @@ print_single_motif <- function(motif, n_letters){
 #' Print a list motif as a vector of characters
 #' 
 #' @param motif_list a list of motifs
-#' @param n_letters length of the output character string
 #' 
 #' @return a vector of characters
 #' 
 #' @export
-print_motifs <- function(motif_list, n_letters){
-  motifs <- unlist( lapply(motif_list, FUN = function(x){ print_single_motif(x, n_letters = n_letters) } ) )
+print_motifs <- function(motif_list){
+  motifs <- unlist( lapply(motif_list, FUN = function(x){ print_single_motif(x) } ) )
   return(motifs)
 }
 
 #' Get unique motifs from a list of motifs
 #' 
 #' @param motif_list a list of motifs
-#' @param n_letters maximum number of letters in a motif
 #' 
 #' @return a list of motifs
 #' 
 #' @export
-get_unique_motifs <- function(motif_list, n_letters){
+get_unique_motifs <- function(motif_list){
 
-  motifs <- print_motifs(motif_list, n_letters)
+  motifs <- print_motifs(motif_list)
   unique_motifs <- unique(motifs)
   
   
@@ -459,4 +459,40 @@ get_unique_motifs <- function(motif_list, n_letters){
   }
   
   return(motif_list_unique)
+}
+
+#' Converts a chqracter to a motif
+#' 
+#' @param s a character
+#' @param null_char the character for unspecified letters
+#' 
+#' @return a motif
+#' 
+#' @export
+convert_to_motif <- function(s, null_char = "."){
+  
+  n_letters <- nchar(s)
+  s0<-strsplit(s, split="")[[1]]
+  idx <- which(s0!=null_char)
+  
+  m <- motif( positions = idx, letters = s0[idx], size = n_letters)
+  
+  return(m)
+}
+
+#' Constructor for objects of class "motif"
+#' 
+#' @param positions a vector of integers specifying positions of letters in the motif
+#' @param letters a vector of single characters (letters)
+#' @param size the total number of characters (including unspecified letters)
+#' 
+#' @return a motif
+#' 
+#' @export
+motif <- function( positions = NULL, letters = NULL, size = 1){
+  
+  m <- list(positions=positions, letters=letters, size = size)
+  class(m) <- "motif"
+  return(m)
+  
 }

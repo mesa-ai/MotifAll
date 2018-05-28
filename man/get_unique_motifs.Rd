@@ -4,12 +4,10 @@
 \alias{get_unique_motifs}
 \title{Get unique motifs from a list of motifs}
 \usage{
-get_unique_motifs(motif_list, n_letters)
+get_unique_motifs(motif_list)
 }
 \arguments{
 \item{motif_list}{a list of motifs}
-
-\item{n_letters}{maximum number of letters in a motif}
 }
 \value{
 a list of motifs

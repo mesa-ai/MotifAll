@@ -4,12 +4,10 @@
 \alias{print_motifs}
 \title{Print a list motif as a vector of characters}
 \usage{
-print_motifs(motif_list, n_letters)
+print_motifs(motif_list)
 }
 \arguments{
 \item{motif_list}{a list of motifs}
-
-\item{n_letters}{length of the output character string}
 }
 \value{
 a vector of characters

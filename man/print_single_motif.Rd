@@ -4,12 +4,12 @@
 \alias{print_single_motif}
 \title{Print a motif as a character string}
 \usage{
-print_single_motif(motif, n_letters)
+print_single_motif(motif, null_char = ".")
 }
 \arguments{
 \item{motif}{a motif}
 
-\item{n_letters}{length of the output character string}
+\item{null_char}{the character for unspecified letters}
 }
 \value{
 a character string

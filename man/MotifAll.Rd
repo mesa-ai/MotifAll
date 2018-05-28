@@ -10,9 +10,11 @@ MotifAll(x, idx_select, N_support = NULL, support = 0.05, signif = 0.05,
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
 
-\item{idx_select}{Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.}
+\item{idx_select}{Indexes of foreground sequences in \code{x}. Note that the 
+foreground set must be a subset of the background set.}
 
-\item{N_support}{minimum support of motifs in the foreground set (number of counts). Has priority over \code{support}}
+\item{N_support}{minimum support of motifs in the foreground set (number of counts). 
+Has priority over \code{support}}
 
 \item{support}{minimum support of motifs in the foreground set (frequence)}
 
@@ -35,6 +37,23 @@ A list including the following elements :
 }
 \description{
 This package implements the Motif_All algorithm
+}
+\examples{
+#load data :
+dir<- system.file("extdata", package = "MotifAll")
+path <- paste(dir, "/phospho_site_annotated_plus_motifs.txt", sep="")
+df_motif <- read.csv(path, sep="\\t")
+#data(df_motif, package = "MotifAll")
+psite <- "S"
+
+idx_residue <- which(substr(as.character(df_motif$Sequence),8,8) == psite)
+df <- df_motif[idx_residue, ]
+
+x <- as.character(df$Sequence)
+idx_select <- which(!is.na(df$Cluster))
+
+res <- MotifAll(x, idx_select, support = 0.05, signif = 1e-4, k_min = 1, central_letter = psite)
+
 }
 \author{
 Guillaume Voisinne
