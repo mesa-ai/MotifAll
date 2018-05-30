@@ -31,9 +31,7 @@ A list including the following elements :
 
 \code{score} : data frame with the motifs identified along with scores and counts
 
-\code{idx_match_bckg} : list of vectors containing the matching indexes of a given motif in the set of sequences x
-
-\code{idx_match_sample} : list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
+\code{idx_match} : list of vectors containing the matching indexes of a given motif in the set of sequences x
 }
 \description{
 This package implements the Motif_All algorithm

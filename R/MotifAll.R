@@ -16,8 +16,7 @@
 #' @return A list including the following elements :
 #
 #' @return \code{score} : data frame with the motifs identified along with scores and counts
-#' @return \code{idx_match_bckg} : list of vectors containing the matching indexes of a given motif in the set of sequences x
-#' @return \code{idx_match_sample} : list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
+#' @return \code{idx_match} : list of vectors containing the matching indexes of a given motif in the set of sequences x
 #' 
 #' @import stats
 #' @import utils
@@ -67,10 +66,11 @@ MotifAll <- function(x,
   res <- get_motif_score(x, idx_select, motif_list)
   idx_filter <- which(res$score$p_value_Z_score <= signif)
   if(length(idx_filter)>0){
+    
     res$score <- res$score[idx_filter, ]
-    res$idx_match_bckg <- res$idx_match_bckg[idx_filter]
-    res$idx_match_sample <- res$idx_match_sample[idx_filter]
+    res$idx_match <- match_sequence_to_motifs(x, motif_list[idx_filter])
     res$motif_list <- motif_list[idx_filter]
+    
   } else {
     warning("No motif found. Try changing parameters.")
     return(NULL)
@@ -103,158 +103,119 @@ sequence_to_df <- function(x){
   return(df)
 }
 
-#' Compute the enrichment score for a list of motifs in the foreground set as compared to the background set
+#' Compute the enrichment score for a motif in the foreground set as compared to the background set
 #'
-#' @param x a vector of sequences (with a fixed length). Defined as the background set
+#' @param df a data frame corresponding to set of background sequences as obtained by calling \code{sequence_to_df}. 
+#' Could also be a vector of background sequences (with a fixed length) but will be slower.
 #' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
-#' @param motif list of motifs
-#' @param central_letter keep only sequences that have the given character in central position
+#' @param motif a motif
+#' @param match_central_letter keep only sequences that have the same central letter as the motif
 #' 
 #' @return A data frame summarizing motif enrichment analysis in foreground set
 #
 #' @export
-score_motif_enrichment <- function(x, idx_select, motif, central_letter = NULL){
+get_unique_motif_score <- function(df, idx_select, motif, match_central_letter=TRUE){
   
-  
-  is_select <- rep(FALSE, length(x))
-  is_select[idx_select] <- TRUE
-  
-  xint <- x
-  is_center <- rep(TRUE, length(x))
-  if(!is.null(central_letter)){
-    ncenter <- round( 0.5 * (nchar(x[1]) + 1))
-    is_center <- substr(x, ncenter, ncenter) == central_letter
-  }
-  xint <- xint[is_center]
-  is_select_int <- is_center & is_select
-  
-  df <- sequence_to_df(x)
-  df_int <- sequence_to_df(xint)
-  df_select_int <- df[is_select_int, ]
-  
-  n_sample <- length(idx_select_int)
-  n_bckg <- length(x_int)
-  
-  idx_match_sample <-  idx_select[match_motif_df(df_select, motif)] 
-  idx_match_bckg <- idx_select_int[ match_motif_df(df, motif) ]
-  
-  n_hits_sample<- length(match_motif_df(df_select, motif))
-  n_hits_bckg <- length(match_motif_df(df, motif_list))
-  freq_sample <- n_hits_sample / n_sample
-  freq_bckg <- n_hits_bckg / n_bckg
-  
-  c00 <- n_hits_sample
-  c01 <- n_sample - c00
-  c10 <- n_hits_bckg
-  c11 <- n_bckg - c10
-  
-  LOR <- log(c00*c11/(c10*c01))
-  SE <- sqrt(1/c00 + 1/c01 + 1/c10 + 1/c11)
-  Z_score <-  LOR/SE
-  p_value_Z_score <- 1-pnorm(Z_score)
-  p_value_hyper <- 1-phyper(n_hits_sample-1, 
-                               n_hits_bckg,  
-                               n_bckg-n_hits_bckg,  
-                               n_sample);
-  
-  fold_change <- freq_sample/freq_bckg;
-  
+    if(!is.data.frame(df) & is.character(df)){
+      df_int <- sequence_to_df(df) 
+    } else {
+      df_int <- df
+    }
+    
+    motif_string <- print(motif)
+    n_center <- round(0.5 * (motif$size + 1))
+    motif_central_letter <-  substr(motif_string, n_center, n_center)
+    idx_match_center <- which(df_int[ ,n_center] == motif_central_letter)
+      
+    if(match_central_letter){
+      df_int <- df_int[idx_match_center, ]
+      idx_select_int <- intersect(idx_select, idx_match_center)
+    } else {
+      idx_select_int <- idx_select
+    }
+    
+    df_select_int <- df_int[idx_select_int, ]
+    
+    n_sample <- length(idx_select_int)
+    n_bckg <- dim(df_int)[1]
+
+    motif_length<- length(motif$positions)
+    
+    idx_match_sample <- match_motif_df(df_select_int, motif)
+    idx_match_bckg <-  match_motif_df(df_int, motif) 
+    
+    n_hits_sample <- length( idx_match_sample )
+    n_hits_bckg <- length( idx_match_bckg )
+    freq_sample <- n_hits_sample / n_sample
+    freq_bckg <- n_hits_bckg / n_bckg
+    
+    c00 <- n_hits_sample
+    c01 <- n_sample - c00
+    c10 <- n_hits_bckg
+    c11 <- n_bckg - c10
+    
+    LOR <- log(c00*c11/(c10*c01))
+    SE <- sqrt(1/c00 + 1/c01 + 1/c10 + 1/c11)
+    Z_score <-  LOR/SE
+    p_value_Z_score <- 1-pnorm(Z_score)
+    p_value_hyper <- 1-phyper(n_hits_sample-1, 
+                                 n_hits_bckg,  
+                                 n_bckg-n_hits_bckg,  
+                                 n_sample);
+    
+    fold_change <- freq_sample/freq_bckg;
+    
+    score <- data.frame(motif = print(motif),
+                length = motif_length,
+                Z_score = Z_score,
+                p_value_Z_score = p_value_Z_score,
+                fold_change = fold_change,
+                p_value_hyper = p_value_hyper,
+                n_hits_sample = n_hits_sample,
+                n_sample = n_sample,
+                freq_sample = freq_sample,
+                n_hits_bckg = n_hits_bckg,
+                n_bckg  = n_bckg,
+                freq_bckg = freq_bckg)
+
+    #output =  list(score=score, idx_match_bckg = idx_match_bckg, idx_match_sample = idx_match_sample)                
+    
+    return(score)
   
 }
-  
+
 #' Compute the enrichment score for a list of motifs in the foreground set as compared to the background set
 #'
 #' @param x a vector of sequences (with a fixed length). Defined as the background set
 #' @param idx_select Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.
 #' @param motif_list list of motifs
+#' @param showProgress show progress bar in console
+#' @param match_central_letter keep only sequences that have the same central letter as the motif
 #' 
 #' @return A data frame summarizing motif enrichment analysis in foreground set
 #
 #' @export
-get_motif_score <- function(x, idx_select, motif_list){
-  
-  if (length(motif_list)==0){
-    warning("No motif found. Try changing parameters.")
-    return(NULL)
-  }
+get_motif_score <- function(x, idx_select, motif_list, showProgress = TRUE, match_central_letter=TRUE){
   
   df <- sequence_to_df(x)
-  df_select <- df[idx_select, ]
   
-  n_sample <- length(idx_select)
-  n_bckg <- length(x)
+  if (showProgress){
+    cat("Computing enrichment score for each motif\n")
+    pb <- txtProgressBar(min = 0, max = length(motif_list), style = 3)
+  } 
   
-  n_motifs <- length(motif_list)
-  motif <- rep("", n_motifs)
-  motif_length <- rep(NA, n_motifs)
-  n_hits_sample <- rep(NA, n_motifs)
-  n_hits_bckg <- rep(NA, n_motifs)
-  freq_sample <- rep(NA, n_motifs)
-  freq_bckg <- rep(NA, n_motifs)
-  p_value_hyper <- rep(NA, n_motifs)
-  fold_change <- rep(NA, n_motifs)
-  Z_score<-  rep(NA, n_motifs)
-  p_value_Z_score<- rep(NA, n_motifs)
-  
-  idx_match_sample <- list()
-  idx_match_bckg <- list()
-  
-  cat("Computing motif scores\n")
-  pb <- txtProgressBar(min = 0, max = length(motif_list), style = 3)
-  
-  for(i in 1:length(motif_list)){
-    
-    setTxtProgressBar(pb, i)
-    motif[i] <- print(motif_list[[i]])
-    motif_length[i] <- length(motif_list[[i]]$positions)
-    
-    idx_match_sample[[i]] <- idx_select[match_motif_df(df_select, motif_list[[i]])] 
-    idx_match_bckg[[i]] <-  match_motif_df(df, motif_list[[i]]) 
-    
-    n_hits_sample[i] <- length( idx_match_sample[[i]] )
-    n_hits_bckg[i] <- length( idx_match_bckg[[i]] )
-    freq_sample[i] <- n_hits_sample[i] / n_sample
-    freq_bckg[i] <- n_hits_bckg[i] / n_bckg
-    
-    c00 <- n_hits_sample[i]
-    c01 <- n_sample - c00
-    c10 <- n_hits_bckg[i]
-    c11 <- n_bckg - c10
-    
-    LOR <- log(c00*c11/(c10*c01))
-    SE <- sqrt(1/c00 + 1/c01 + 1/c10 + 1/c11)
-    Z_score[i] <-  LOR/SE
-    p_value_Z_score[i] <- 1-pnorm(Z_score[i])
-    p_value_hyper[i] <- 1-phyper(n_hits_sample[i]-1, 
-                                 n_hits_bckg[i],  
-                                 n_bckg-n_hits_bckg[i],  
-                                 n_sample);
-    
-    fold_change[i] <- freq_sample[i]/freq_bckg[i];
-    
+  score <- vector("list", length(motif_list))
+  for (i in 1:length(motif_list)){
+    if (showProgress) setTxtProgressBar(pb, i)
+    score[[i]] <- get_unique_motif_score(df, idx_select, motif_list[[i]], match_central_letter = match_central_letter)
   }
-  close(pb)
+  if (showProgress) close(pb)
   
-  df <- data.frame(motif = motif,
-                   length = motif_length,
-                   Z_score = Z_score,
-                   p_value_Z_score = p_value_Z_score,
-                   fold_change = fold_change,
-                   p_value_hyper = p_value_hyper,
-                   n_hits_sample = n_hits_sample,
-                   n_sample = rep(n_sample, n_motifs),
-                   freq_sample = freq_sample,
-                   n_hits_bckg = n_hits_bckg,
-                   n_bckg  = rep(n_bckg, n_motifs),
-                   freq_bckg = freq_bckg
-  )
+  output <- do.call(rbind, score)
   
-  res <- list(score=df, idx_match_bckg = idx_match_bckg, idx_match_sample = idx_match_sample)
-  
-  return(res)
+  return(output)
   
 }
-
 
 #' Filter motifs based on their length
 #'
@@ -476,7 +437,7 @@ match_motif_df <- function(df, motif){
   
 }
 
-
+#' @export
 print.motif<- function(x, ... ){
   # write a motif as a string
   
