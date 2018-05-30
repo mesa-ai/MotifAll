@@ -9,9 +9,11 @@
 #' Has priority over \code{support}
 #' @param support minimum support of motifs in the foreground set (frequence)
 #' @param signif significance level of output motifs (p-value associated with the Z-score)
+#' @param var_p_val choose between p_value of Z-score ("p_value_Z_score")or p-value from hypergeometric test ("p_value_hyper")
 #' @param k_min minimum size of motifs
 #' @param k_max maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
+#' @param match_central_letter Compute enrichment score on the restricted set of sequences that have the same central letter as the motif
 #'
 #' @return A list including the following elements :
 #
@@ -46,9 +48,11 @@ MotifAll <- function(x,
                      N_support = NULL,
                      support = 0.05,
                      signif = 0.05,
+                     var_p_val  = "p_value_Z_score",
                      k_min = 3, 
                      k_max = NULL, 
-                     central_letter = NULL){
+                     central_letter = NULL,
+                     match_central_letter=TRUE){
   # x : set of sequences
   # idx_select : indexes of foreground sequences in x
   
@@ -63,20 +67,22 @@ MotifAll <- function(x,
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   #unique_motifs <- motifs[length_motifs >= k_min]
   
-  res <- get_motif_score(x, idx_select, motif_list)
-  idx_filter <- which(res$score$p_value_Z_score <= signif)
+  score <- get_motif_score(x, idx_select, motif_list, match_central_letter = match_central_letter)
+  idx_filter <- which(score[[var_p_val]] <= signif)
   if(length(idx_filter)>0){
     
-    res$score <- res$score[idx_filter, ]
-    res$idx_match <- match_sequence_to_motifs(x, motif_list[idx_filter])
-    res$motif_list <- motif_list[idx_filter]
+    score <- score[idx_filter, ]
+    idx_match <- match_sequence_to_motifs(x, motif_list[idx_filter])
+    motif_list <- motif_list[idx_filter]
     
   } else {
     warning("No motif found. Try changing parameters.")
     return(NULL)
   }
   
-  return(res)
+  output <- list(score = score, idx_match = idx_match, motif_list = motif_list)
+  
+  return(output)
   
 }
 
@@ -365,7 +371,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
 #' @return vector of matching indexes
 #' 
 #' @export
-match_sequence_to_motifs <- function(motif_list, x){
+match_sequence_to_motifs <- function(x, motif_list){
   
   n <- nchar(x)
   n_seq <- 1

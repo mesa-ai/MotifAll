@@ -4,12 +4,12 @@
 \alias{match_sequence_to_motifs}
 \title{Match a sequence to a list of motifs}
 \usage{
-match_sequence_to_motifs(motif_list, x)
+match_sequence_to_motifs(x, motif_list)
 }
 \arguments{
-\item{motif_list}{list of motifs}
-
 \item{x}{a sequence}
+
+\item{motif_list}{list of motifs}
 }
 \value{
 vector of matching indexes
