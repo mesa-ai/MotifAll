@@ -63,24 +63,26 @@ MotifAll <- function(x,
                                      k_max = k_max, 
                                      central_letter = central_letter)
   motif_list <- filter_motif_list(motif_list, k_min = k_min)
-  motifs <- print_motifs(motif_list)
+  motifs <- print_motif(motif_list)
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   #unique_motifs <- motifs[length_motifs >= k_min]
   
   score <- get_motif_score(x, idx_select, motif_list, match_central_letter = match_central_letter)
   idx_filter <- which(score[[var_p_val]] <= signif)
+  idx_match <- vector("list", length(idx_filter))
+  
   if(length(idx_filter)>0){
     
     score <- score[idx_filter, ]
-    idx_match <- match_sequence_to_motifs(x, motif_list[idx_filter])
     motif_list <- motif_list[idx_filter]
+    idx_match <- match_motif_list_to_sequences(x, motif_list)
     
   } else {
     warning("No motif found. Try changing parameters.")
     return(NULL)
   }
   
-  output <- list(score = score, idx_match = idx_match, motif_list = motif_list)
+  output <- list(score = score, motif_list = motif_list, idx_match = idx_match)
   
   return(output)
   
@@ -128,7 +130,7 @@ get_unique_motif_score <- function(df, idx_select, motif, match_central_letter=T
       df_int <- df
     }
     
-    motif_string <- print(motif)
+    motif_string <- print_motif(motif)
     n_center <- round(0.5 * (motif$size + 1))
     motif_central_letter <-  substr(motif_string, n_center, n_center)
     idx_match_center <- which(df_int[ ,n_center] == motif_central_letter)
@@ -171,7 +173,7 @@ get_unique_motif_score <- function(df, idx_select, motif, match_central_letter=T
     
     fold_change <- freq_sample/freq_bckg;
     
-    score <- data.frame(motif = print(motif),
+    score <- data.frame(motif = print_motif(motif),
                 length = motif_length,
                 Z_score = Z_score,
                 p_value_Z_score = p_value_Z_score,
@@ -346,7 +348,6 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
       
     }
     
-    #print( print_motifs(F_list_1, n) )
     close(pb)
     
     if(length(F_list_1)>0){
@@ -362,6 +363,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
   
   return(F_list)
 }
+
 
 #' Match a sequence to a list of motifs
 #' 
@@ -394,6 +396,34 @@ match_sequence_to_motifs <- function(x, motif_list){
   
   return(idx)
   
+}
+
+#' Match a list of motifs to a set of sequences
+#' 
+#' @param motif_list a list of motifs
+#' @param x a vector of sequences (with a fixed length).
+#' @param showProgress show progress bar in console
+#' 
+#' @return list of with matching indexes
+#' 
+#' @export
+#' 
+match_motif_list_to_sequences <- function(x, motif_list, showProgress=TRUE){
+  
+  df <- sequence_to_df(x)
+  idx_match <- vector("list", length(motif_list))
+  if (showProgress){
+    cat("Matching motifs to sequences\n")
+    pb <- txtProgressBar(min = 0, max = length(motif_list), style = 3)
+  } 
+  
+  for (i in 1:length(motif_list)) {
+    if (showProgress) setTxtProgressBar(pb, i)
+    idx_match[[i]] <- match_motif_df(df, motif_list[[i]])
+  }
+  if (showProgress) close(pb)
+  
+  return(idx_match)
 }
 
 #' Match a motif to a set of sequences
@@ -443,9 +473,14 @@ match_motif_df <- function(df, motif){
   
 }
 
+#' Converts a motif to a character string
+#' 
+#' @param x a motif
+#' 
+#' @return a character string
+#' 
 #' @export
-print.motif<- function(x, ... ){
-  # write a motif as a string
+motif_to_string<- function(x){
   
   s<-rep(".", x$size)
   for ( i in 1:length(x$positions)){
@@ -462,8 +497,12 @@ print.motif<- function(x, ... ){
 #' @return a vector of characters
 #' 
 #' @export
-print_motifs <- function(motif_list){
-  motifs <- unlist( lapply(motif_list, FUN = function(x){ print(x) } ) )
+print_motif <- function(motif_list){
+  if(class(motif_list)=="list"){
+    motifs <- unlist( lapply(motif_list, FUN = function(x){ motif_to_string(x) } ) )
+  } else {
+    motifs <- motif_to_string(motif_list)
+  }
   return(motifs)
 }
 
@@ -476,7 +515,7 @@ print_motifs <- function(motif_list){
 #' @export
 get_unique_motifs <- function(motif_list){
 
-  motifs <- print_motifs(motif_list)
+  motifs <- print_motif(motif_list)
   unique_motifs <- unique(motifs)
   
   
