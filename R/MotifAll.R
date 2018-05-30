@@ -136,13 +136,13 @@ get_unique_motif_score <- function(df, idx_select, motif, match_central_letter=T
     idx_match_center <- which(df_int[ ,n_center] == motif_central_letter)
       
     if(match_central_letter){
-      df_int <- df_int[idx_match_center, ]
       idx_select_int <- intersect(idx_select, idx_match_center)
+      df_select_int <- df_int[idx_select_int, ]
+      df_int <- df_int[idx_match_center, ]
     } else {
       idx_select_int <- idx_select
+      df_select_int <- df_int[idx_select_int, ]
     }
-    
-    df_select_int <- df_int[idx_select_int, ]
     
     n_sample <- length(idx_select_int)
     n_bckg <- dim(df_int)[1]
@@ -203,7 +203,7 @@ get_unique_motif_score <- function(df, idx_select, motif, match_central_letter=T
 #' @return A data frame summarizing motif enrichment analysis in foreground set
 #
 #' @export
-get_motif_score <- function(x, idx_select, motif_list, showProgress = TRUE, match_central_letter=TRUE){
+get_motif_score <- function(x, idx_select, motif_list, showProgress = TRUE, match_central_letter = TRUE){
   
   df <- sequence_to_df(x)
   
