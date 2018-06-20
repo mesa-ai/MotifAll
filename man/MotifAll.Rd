@@ -5,8 +5,7 @@
 \title{Analysis of motifs in protein sequences}
 \usage{
 MotifAll(x, idx_select, N_support = NULL, support = 0.05, signif = 0.05,
-  var_p_val = "p_value_Z_score", k_min = 3, k_max = NULL,
-  central_letter = NULL, match_central_letter = TRUE)
+  k_min = 3, k_max = NULL, central_letter = NULL)
 }
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
@@ -21,22 +20,20 @@ Has priority over \code{support}}
 
 \item{signif}{significance level of output motifs (p-value associated with the Z-score)}
 
-\item{var_p_val}{choose between p_value of Z-score ("p_value_Z_score")or p-value from hypergeometric test ("p_value_hyper")}
-
 \item{k_min}{minimum size of motifs}
 
 \item{k_max}{maximum size of motifs (set to NULL to ignore)}
 
 \item{central_letter}{search only for motifs that have the given character in central position}
-
-\item{match_central_letter}{Compute enrichment score on the restricted set of sequences that have the same central letter as the motif}
 }
 \value{
 A list including the following elements :
 
 \code{score} : data frame with the motifs identified along with scores and counts
 
-\code{idx_match} : list of vectors containing the matching indexes of a given motif in the set of sequences x
+\code{idx_match_bckg} : list of vectors containing the matching indexes of a given motif in the set of sequences x
+
+\code{idx_match_sample} : list of vectors containing the matching indexes of a given motif in the set of sequences x also part of the foreground set
 }
 \description{
 This package implements the Motif_All algorithm

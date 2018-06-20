@@ -4,8 +4,7 @@
 \alias{get_motif_score}
 \title{Compute the enrichment score for a list of motifs in the foreground set as compared to the background set}
 \usage{
-get_motif_score(x, idx_select, motif_list, showProgress = TRUE,
-  match_central_letter = TRUE)
+get_motif_score(x, idx_select, motif_list)
 }
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
@@ -13,10 +12,6 @@ get_motif_score(x, idx_select, motif_list, showProgress = TRUE,
 \item{idx_select}{Indexes of foreground sequences in \code{x}. Note that the foreground set must be a subset of the background set.}
 
 \item{motif_list}{list of motifs}
-
-\item{showProgress}{show progress bar in console}
-
-\item{match_central_letter}{keep only sequences that have the same central letter as the motif}
 }
 \value{
 A data frame summarizing motif enrichment analysis in foreground set
