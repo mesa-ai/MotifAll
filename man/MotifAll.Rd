@@ -6,7 +6,7 @@
 \usage{
 MotifAll(x, idx_select, N_support = NULL, support = 0.05, signif = 0.05,
   var_p_val = "p_value_Z_score", k_min = 3, k_max = NULL,
-  central_letter = NULL, match_central_letter = TRUE)
+  central_letter = NULL, match_central_letter = TRUE, showProgress = TRUE)
 }
 \arguments{
 \item{x}{a vector of sequences (with a fixed length). Defined as the background set}
@@ -30,6 +30,8 @@ Has priority over \code{support}}
 \item{central_letter}{search only for motifs that have the given character in central position}
 
 \item{match_central_letter}{Compute enrichment score on the restricted set of sequences that have the same central letter as the motif}
+
+\item{showProgress}{show progress bar in console}
 }
 \value{
 A list including the following elements :

@@ -14,6 +14,7 @@
 #' @param k_max maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
 #' @param match_central_letter Compute enrichment score on the restricted set of sequences that have the same central letter as the motif
+#' @param showProgress show progress bar in console
 #'
 #' @return A list including the following elements :
 #
@@ -52,7 +53,8 @@ MotifAll <- function(x,
                      k_min = 3, 
                      k_max = NULL, 
                      central_letter = NULL,
-                     match_central_letter=TRUE){
+                     match_central_letter=TRUE, 
+                     showProgress = TRUE){
   # x : set of sequences
   # idx_select : indexes of foreground sequences in x
   
@@ -61,13 +63,14 @@ MotifAll <- function(x,
                                      N_support = N_support,
                                      support = support, 
                                      k_max = k_max, 
-                                     central_letter = central_letter)
+                                     central_letter = central_letter,
+                                     showProgress = showProgress)
   motif_list <- filter_motif_list(motif_list, k_min = k_min)
   motifs <- print_motif(motif_list)
   #length_motifs <- unlist( lapply(motif_list, FUN = function(x){ length(x$positions) } ) ) 
   #unique_motifs <- motifs[length_motifs >= k_min]
   
-  score <- get_motif_score(x, idx_select, motif_list, match_central_letter = match_central_letter)
+  score <- get_motif_score(x, idx_select, motif_list, match_central_letter = match_central_letter, showProgress = showProgress)
   idx_filter <- which(score[[var_p_val]] <= signif)
   idx_match <- vector("list", length(idx_filter))
   
@@ -75,7 +78,7 @@ MotifAll <- function(x,
     
     score <- score[idx_filter, ]
     motif_list <- motif_list[idx_filter]
-    idx_match <- match_motif_list_to_sequences(x, motif_list)
+    idx_match <- match_motif_list_to_sequences(x, motif_list, showProgress = showProgress)
     
   } else {
     warning("No motif found. Try changing parameters.")
@@ -254,11 +257,12 @@ filter_motif_list <- function(motif_list, k_min){
 #' @param support minimum support of motifs in the foreground set (frequence)
 #' @param k_max maximum size of motifs (set to NULL to ignore)
 #' @param central_letter search only for motifs that have the given character in central position
+#' @param showProgress show progress bar in console
 #'
 #' @return a list of motifs
 #' 
 #' @export
-find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NULL, central_letter = NULL) {
+find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NULL, central_letter = NULL, showProgress = TRUE) {
   # implementation of the Motif_All algorithm to find all frequent motifs (with a support >= k) in a set of sequences x
   
   n <- nchar(x[1])
@@ -294,11 +298,13 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
     
     # list all 1-motif
     count <- 0
-    cat("Listing 1-motif\n")
-    pb <- txtProgressBar(min = 0, max = n, style = 3)
+    if(showProgress){
+      cat("Listing 1-motif\n")
+      pb <- txtProgressBar(min = 0, max = n, style = 3)
+    }
     
     for (j in 1:n){
-      setTxtProgressBar(pb, j)
+      if(showProgress) setTxtProgressBar(pb, j)
       sum_df <- summary(df[[j]])
       idx <- which( sum_df >= N_support_eff )
       if(length(idx)>0){
@@ -308,7 +314,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
         }
       }
     }
-    close(pb)
+    if(showProgress) close(pb)
   } else {
     if( typeof(central_letter) == "character"){
       F_list[[1]] <- motif(positions = round((n+1)/2), letters = central_letter, size = n)
@@ -319,20 +325,22 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
   
   
   F_list_new <- get_unique_motifs(F_list)
-  cat(paste("N=",length(F_list_new),"\n",sep=""))
+  if(showProgress) cat(paste("N=",length(F_list_new),"\n",sep=""))
   #F_list_new <- F_list
   
   k_motif <- 1
   while ( length(F_list_new) > 0 & k_motif < k_lim){
     k_motif <- k_motif + 1
-    cat(paste("Listing ",k_motif,"-motif from ", length(F_list_new), " parent motifs\n", sep=""))
-    pb <- txtProgressBar(min = 0, max = length(F_list_new), style = 3)
+    if(showProgress){
+      cat(paste("Listing ",k_motif,"-motif from ", length(F_list_new), " parent motifs\n", sep=""))
+      pb <- txtProgressBar(min = 0, max = length(F_list_new), style = 3)
+    }
     
     count<-0
     F_list_1 <- list()
     
     for (i in 1:length(F_list_new)){
-      setTxtProgressBar(pb, i)
+      if(showProgress) setTxtProgressBar(pb, i)
       idx_match <- match_motif_df(df, F_list_new[[i]])
       
       for (j in setdiff(1:n, F_list_new[[i]]$positions)){
@@ -352,7 +360,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
       
     }
     
-    close(pb)
+    if(showProgress) close(pb)
     
     if(length(F_list_1)>0){
       F_list_new <- get_unique_motifs(F_list_1)
@@ -360,7 +368,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
       F_list_new <- list()
     }
     
-    cat(paste("N=",length(F_list_new),"\n",sep=""))
+    if(showProgress) cat(paste("N=",length(F_list_new),"\n",sep=""))
     
     F_list <- c(F_list, F_list_new)
   }
