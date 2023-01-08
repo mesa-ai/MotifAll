@@ -104,11 +104,8 @@ sequence_to_df <- function(x){
   
   M <- matrix("", n_seq, n)
   
-  for (i in 1:n_seq){
-    for (j in 1:n){
-      M[i, j] <- substr(x[i],j,j)
-    }
-  }
+  M[] <- unlist(strsplit(x,""))
+  
   df <- as.data.frame(M)
   
   return(df)
