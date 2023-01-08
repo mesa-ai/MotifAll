@@ -305,7 +305,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
     
     for (j in 1:n){
       if(showProgress) setTxtProgressBar(pb, j)
-      sum_df <- summary(df[[j]])
+      sum_df <- summary.factor(df[[j]])
       idx <- which( sum_df >= N_support_eff )
       if(length(idx)>0){
         for (k in 1:length(idx)){
@@ -344,7 +344,7 @@ find_frequent_motifs <- function(x, N_support = NULL, support = 0.05, k_max = NU
       idx_match <- match_motif_df(df, F_list_new[[i]])
       
       for (j in setdiff(1:n, F_list_new[[i]]$positions)){
-        sum_df <- summary( df[idx_match, j])
+        sum_df <- summary.factor( df[idx_match, j])
         idx <- which( sum_df >= N_support_eff )
         if(length(idx)>0){
           for (k in 1:length(idx)){
